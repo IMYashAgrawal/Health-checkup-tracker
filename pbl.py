@@ -1,38 +1,28 @@
-from flask import Flask, request, jsonify, send_from_directory
-import pickle
-import os
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
 
-# Load the trained model
-MODEL_PATH = 'D:\Codes\Projects\MentalHealthChatBot\model.pkl'
+# In-memory health records store (for demo)
+health_records = []
 
-if os.path.exists(MODEL_PATH):
-    with open(MODEL_PATH, 'rb') as file:
-        model = pickle.load(file)
-else:
-    raise FileNotFoundError(f"Model file '{MODEL_PATH}' not found. Please train and save your model first.")
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    try:
-        user_input = request.json.get('message', '')
-        if not user_input:
-            return jsonify({"error": "No message provided."}), 400
+@app.route('/add', methods=['POST'])
+def add_record():
+    record = {
+        'date': request.form['date'],
+        'weight': request.form['weight'],
+        'blood_pressure': request.form['blood_pressure'],
+        'notes': request.form['notes'],
+    }
+    health_records.append(record)
+    return redirect(url_for('records'))
 
-        prediction = model.predict([user_input])[0]
-        return jsonify({"message": user_input, "prediction": prediction})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/web', methods=['GET'])
-def serve_web():
-    return send_from_directory('.', 'index.html')
-
-@app.route('/', methods=['GET'])
-def home():
-    return "Mental Health Chatbot API is running!"
+@app.route('/records')
+def records():
+    return render_template('records.html', records=health_records)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
